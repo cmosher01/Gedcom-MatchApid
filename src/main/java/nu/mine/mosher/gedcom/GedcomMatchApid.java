@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static nu.mine.mosher.logging.Jul.log;
 
@@ -185,6 +188,7 @@ public class GedcomMatchApid implements Gedcom.Processor {
                         }
                         if (found) {
                             this.c.apidsAlreadyExisted.incrementAndGet();
+                            apidBug(apid);
                         } else {
                             if (this.options.add && originalExists(lineCitaAnc.getPointer())) {
                                 addNewCitation(lineCitaAnc.getPointer(), apid, eventOrig);
@@ -267,6 +271,29 @@ public class GedcomMatchApid implements Gedcom.Processor {
         });
     }
 
+    private static final Pattern PAT_APID = Pattern.compile("(\\d+,\\d+::)(\\d+)(?:.*)");
+
+    private String apidBug(String apid) {
+        final Matcher matcher = PAT_APID.matcher(apid);
+        if (!matcher.matches()) {
+            log().warning("Detected unparsable _APID. Replacing with __TODO__, needs to be fixed manually.");
+            return "__TODO__";
+        }
+
+        try {
+            final long id = Long.parseLong(matcher.group(2));
+            if (id == 2147483647) {
+                log().warning("Detected _APID with 2147483647, which is most likely due to a bug from Ancestry.com's export. Replacing with __TODO__, needs to be fixed manually.");
+                return matcher.group(1) + "__TODO__";
+            }
+        } catch (final Throwable e) {
+            log().log(Level.WARNING, "Invalid _APID: "+apid+" Replacing with __TODO__", e);
+            return "__TODO__";
+        }
+
+        return matcher.group(1)+matcher.group(2);
+    }
+
     private static final int ANCESTRY_CITA_LEN_MAX = 255;
     private boolean ancestryPagesMatch(final String pageAnc, final String pageOrig) {
         /* ancestry truncates citation PAGE values to 255 characters */
@@ -274,7 +301,8 @@ public class GedcomMatchApid implements Gedcom.Processor {
         return orig.equals(pageAnc);
     }
 
-    private void addNewCitation(final String idSour, final String apidValue, final TreeNode<GedcomLine> eventOrig) {
+    private void addNewCitation(final String idSour, String apidValue, final TreeNode<GedcomLine> eventOrig) {
+        apidValue = apidBug(apidValue);
         final GedcomLine cita = GedcomLine.createPointer(eventOrig.getObject().getLevel()+1, GedcomTag.SOUR, idSour);
         final TreeNode<GedcomLine> nodeCita = new TreeNode<>(cita);
         final GedcomLine apid = cita.createChild("_APID", apidValue);
@@ -323,9 +351,11 @@ public class GedcomMatchApid implements Gedcom.Processor {
             log().warning("Found multiple _APID records for citation in original file: " + msgFor(citaOrig));
             if (anyChildHas(citaOrig, "_APID", apidAnc)) {
                 log().warning("    but the one from Ancestry is already in there: " + apidAnc);
+                apidBug(apidAnc); //just log
                 cApidAncNotMatched = 0;
             } else {
                 log().warning("    even though none of them match, we still won't add the new one: " + apidAnc);
+                apidBug(apidAnc); //just log
             }
             return -cApidAncNotMatched;
         }
@@ -334,6 +364,7 @@ public class GedcomMatchApid implements Gedcom.Processor {
 
         // now add it, if it's not already there (and we aren't already adding it)
         if (apidOrig.equals(apidAnc) || apidPendingAdd(citaOrig, apidAnc)) {
+            apidBug(apidAnc); // just log
             // Ancestry _APID is already in original file (or will be added); OK, do nothing
             cApidAncNotMatched = 0;
         } else {
@@ -352,7 +383,8 @@ public class GedcomMatchApid implements Gedcom.Processor {
         return false;
     }
 
-    private void addApidForced(final String apidAnc, final TreeNode<GedcomLine> citaOrig) {
+    private void addApidForced(String apidAnc, final TreeNode<GedcomLine> citaOrig) {
+        apidAnc = apidBug(apidAnc);
         this.newNodes.add(new ChildToBeAdded(citaOrig, new TreeNode<>(citaOrig.getObject().createChild("_APID", apidAnc))));
         log().finer("Added _APID " + apidAnc + " to original: " + msgFor(citaOrig));
     }

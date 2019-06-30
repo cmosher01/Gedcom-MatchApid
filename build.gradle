@@ -1,42 +1,16 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: 'latest.integration'
-    }
-}
-
 apply plugin: 'java'
 apply plugin: 'application'
-apply plugin: 'org.junit.platform.gradle.plugin'
 
 group = 'nu.mine.mosher.gedcom'
 version = '1.0.0-SNAPSHOT'
 mainClassName = 'nu.mine.mosher.gedcom.GedcomMatchApid'
-sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
-    maven {
-        url 'http://mosher.mine.nu/nexus/repository/maven-public/'
-    }
-}
-
-junitPlatform {
-    filters {
-        engines {
-            include 'junit-jupiter'
-        }
-        includeClassNamePattern '.*'
-    }
-    enableStandardTestTask true
+    jcenter()
 }
 
 dependencies {
     compile group: 'nu.mine.mosher.gedcom', name: 'gedcom-lib', version: 'latest.integration'
     compile group: 'nu.mine.mosher.mopper', name: 'mopper', version: 'latest.integration'
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: 'latest.integration'
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: 'latest.integration'
-    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: 'latest.integration'
 }
