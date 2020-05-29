@@ -294,9 +294,9 @@ public class GedcomMatchApid implements Gedcom.Processor {
         return matcher.group(1)+matcher.group(2);
     }
 
-    private static final int ANCESTRY_CITA_LEN_MAX = 255;
+    private static final int ANCESTRY_CITA_LEN_MAX = 256;
     private boolean ancestryPagesMatch(final String pageAnc, final String pageOrig) {
-        /* ancestry truncates citation PAGE values to 255 characters */
+        /* ancestry truncates citation PAGE values to 256 characters */
         final String orig = pageOrig.length() > ANCESTRY_CITA_LEN_MAX ? pageOrig.substring(0, ANCESTRY_CITA_LEN_MAX) : pageOrig;
         return orig.equals(pageAnc);
     }
